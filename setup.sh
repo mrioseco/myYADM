@@ -124,22 +124,67 @@ fi
 print_step "Instalando Cursor..."
 if ! command -v cursor &> /dev/null; then
     if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
-        # Descargar e instalar Cursor
-        CURSOR_DOWNLOAD_URL="https://downloader.cursor.sh/linux/appImage/x64"
         CURSOR_DIR="$HOME/.local/bin"
         mkdir -p "$CURSOR_DIR"
         
-        print_step "Descargando Cursor..."
-        curl -L "$CURSOR_DOWNLOAD_URL" -o "$CURSOR_DIR/cursor"
-        chmod +x "$CURSOR_DIR/cursor"
+        # Intentar múltiples métodos de instalación
+        CURSOR_INSTALLED=false
         
-        # Agregar al PATH si no está
-        if [[ ":$PATH:" != *":$CURSOR_DIR:"* ]]; then
-            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-            export PATH="$HOME/.local/bin:$PATH"
+        # Método 1: Descargar AppImage desde la URL oficial
+        print_step "Intentando descargar Cursor AppImage..."
+        CURSOR_DOWNLOAD_URL="https://downloader.cursor.sh/linux/appImage/x64"
+        
+        if curl -L --connect-timeout 10 --max-time 60 "$CURSOR_DOWNLOAD_URL" -o "$CURSOR_DIR/cursor" 2>/dev/null; then
+            chmod +x "$CURSOR_DIR/cursor"
+            CURSOR_INSTALLED=true
+            print_success "Cursor descargado e instalado desde AppImage"
+        else
+            print_warning "No se pudo descargar Cursor desde la URL oficial"
+            
+            # Método 2: Intentar con wget como alternativa
+            print_step "Intentando con wget como alternativa..."
+            if command -v wget &> /dev/null; then
+                if wget --timeout=10 --tries=3 -O "$CURSOR_DIR/cursor" "$CURSOR_DOWNLOAD_URL" 2>/dev/null; then
+                    chmod +x "$CURSOR_DIR/cursor"
+                    CURSOR_INSTALLED=true
+                    print_success "Cursor descargado e instalado con wget"
+                fi
+            fi
         fi
         
-        print_success "Cursor instalado en $CURSOR_DIR"
+        # Método 3: Intentar con el script de instalación oficial (si los métodos anteriores fallaron)
+        if [ "$CURSOR_INSTALLED" = false ]; then
+            print_step "Intentando con el script de instalación oficial de Cursor..."
+            if command -v wget &> /dev/null; then
+                # Script de instalación oficial de Cursor
+                if wget -qO - https://download.todesktop.com/210303leazlircz/linux 2>/dev/null | sh; then
+                    CURSOR_INSTALLED=true
+                    print_success "Cursor instalado con el script oficial"
+                fi
+            fi
+        fi
+        
+        # Si aún no se instaló, ofrecer instrucciones manuales
+        if [ "$CURSOR_INSTALLED" = false ]; then
+            print_warning "No se pudo instalar Cursor automáticamente."
+            print_warning "Por favor instálalo manualmente:"
+            echo ""
+            echo "  Opción 1 - Script oficial:"
+            echo "    wget -qO - https://download.todesktop.com/210303leazlircz/linux | sh"
+            echo ""
+            echo "  Opción 2 - Descargar manualmente:"
+            echo "    1. Visita https://cursor.sh/download"
+            echo "    2. Descarga el .deb o AppImage para Linux"
+            echo "    3. Instala según el formato descargado"
+            echo ""
+            print_warning "Después de instalar Cursor manualmente, puedes continuar con el resto de la configuración."
+        else
+            # Agregar al PATH si no está
+            if [[ ":$PATH:" != *":$CURSOR_DIR:"* ]]; then
+                echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+                export PATH="$HOME/.local/bin:$PATH"
+            fi
+        fi
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         if command -v brew &> /dev/null; then
             brew install --cask cursor
