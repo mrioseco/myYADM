@@ -57,3 +57,6 @@ cursor --version
 - Si actualizas Cursor, repite los pasos 2-4 con la nueva versión del AppImage
 - El script en `~/.local/bin/cursor` puede ser actualizado manualmente si cambias la ubicación de la instalación
 
+
+
+
