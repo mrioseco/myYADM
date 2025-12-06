@@ -1,0 +1,47 @@
+# Aliases
+# Enable aliases to be sudo'ed
+alias sudo='sudo '
+alias ..="cd .."
+alias ...="cd ../.."
+alias ll="ls -l"
+alias la="ls -la"
+alias ~="cd ~"
+
+# Git
+alias gaa="git add -A"
+alias gc='$DOTLY_PATH/bin/dot git commit'
+alias gca="git add --all && git commit --amend --no-edit"
+alias gco="git checkout"
+alias gs="git status -sb"
+alias gf="git fetch --all -p"
+alias gps="git push"
+alias gpsf="git push --force"
+alias gpl="git pull --rebase --autostash"
+alias gb="git branch"
+
+# YADM (alias para git cuando se usa con YADM)
+alias ya="yadm add"
+alias yc="yadm commit"
+alias yp="yadm push"
+alias ypl="yadm pull"
+alias ys="yadm status"
+alias yl="yadm log"
+
+# Utils
+alias k='kill -9'
+alias o.='open .'
+
+# Editor - Cursor (reemplazo de Visual Studio Code)
+alias c.='(cursor $PWD &>/dev/null &)'
+alias code='cursor'
+
+# Aliases a scripts
+alias up='~/scripts/update_system.sh'
+alias bomdia='~/scripts/saludar.sh'
+alias newfeat='~/scripts/newFeat.sh'
+alias cloneByPrefix='~/scripts/clonar-by-prefix.sh'
+
+# Node.js y NVM
+alias nvmls='nvm list'
+alias nvmuse='nvm use'
+

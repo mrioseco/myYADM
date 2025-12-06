@@ -1,0 +1,38 @@
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.*.sw?
+
+# Logs
+*.log
+wget-log
+
+# Directorios temporales
+tmp/
+temp/
+.tmp/
+
+# Node modules (si se agregan)
+node_modules/
+
+# Archivos de configuración local que no deben compartirse
+.env
+.env.local
+*.local
+
+# Archivos de backup
+*.bak
+*.backup
+*~
+
+# Archivos de IDE (excepto configuraciones compartidas)
+.idea/
+.vscode/
+*.iml
+
+# Snap (si se incluye)
+snap/
+
