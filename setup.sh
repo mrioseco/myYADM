@@ -252,6 +252,53 @@ else
     print_success "AWS CLI ya está instalado"
 fi
 
+# Instalar Slack (solo si no está instalado)
+print_step "Verificando Slack..."
+if ! command -v slack &> /dev/null; then
+    if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
+        # Intentar instalar con snap primero (más fácil de mantener)
+        if command -v snap &> /dev/null; then
+            print_step "Instalando Slack con snap..."
+            sudo snap install slack --classic
+            print_success "Slack instalado"
+        else
+            # Si snap no está disponible, descargar e instalar .deb
+            print_step "Instalando snapd para Slack..."
+            sudo apt-get install -y snapd
+            sudo snap install slack --classic
+            print_success "Slack instalado"
+        fi
+    elif [ "$OS" = "fedora" ] || [ "$OS" = "rhel" ]; then
+        # Intentar instalar con snap primero
+        if command -v snap &> /dev/null; then
+            print_step "Instalando Slack con snap..."
+            sudo snap install slack --classic
+            print_success "Slack instalado"
+        else
+            print_warning "snap no está disponible. Por favor instala Slack manualmente:"
+            echo "  sudo dnf install -y snapd"
+            echo "  sudo snap install slack --classic"
+        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        if command -v brew &> /dev/null; then
+            if ! brew list --cask slack &>/dev/null; then
+                print_step "Instalando Slack..."
+                brew install --cask slack
+                print_success "Slack instalado"
+            else
+                print_success "Slack ya está instalado"
+            fi
+        else
+            print_warning "Homebrew no está instalado. Por favor instala Slack manualmente desde https://slack.com/downloads"
+        fi
+    else
+        print_warning "Sistema operativo no soportado para instalación automática de Slack."
+        print_warning "Por favor instala Slack manualmente desde https://slack.com/downloads"
+    fi
+else
+    print_success "Slack ya está instalado"
+fi
+
 # Instalar i3 Window Manager y dependencias
 print_step "Instalando i3 Window Manager y dependencias..."
 if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
@@ -361,6 +408,7 @@ echo "      - nvm --version"
 echo "      - node --version"
 echo "      - npm --version"
 echo "      - ntl --version"
+echo "      - slack --version"
 echo "   3. Configura AWS CLI con tus credenciales:"
 echo "      - aws configure"
 if command -v i3 &> /dev/null; then
