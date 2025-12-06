@@ -52,14 +52,11 @@ if command -v i3lock-color &> /dev/null; then
         --datestr="%A, %d %B" \
         --nofork
 else
-    # Usar i3lock básico (compatible con todas las versiones)
+    # Usar i3lock básico (compatible con versiones mínimas)
+    # Solo usa opciones que todas las versiones soportan
     i3lock \
-        --image="$LOCK_IMAGE" \
-        --nofork \
-        --indicator \
-        --clock \
-        --timestr="%H:%M" \
-        --datestr="%A, %d %B"
+        -i "$LOCK_IMAGE" \
+        -n
 fi
 
 # Limpiar imagen temporal (opcional, puedes comentar esta línea si quieres mantenerla)
