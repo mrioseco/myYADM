@@ -50,33 +50,52 @@ else
     OS="unknown"
 fi
 
-# Instalar dependencias básicas según el OS
+# Instalar dependencias básicas según el OS (solo las que faltan)
 if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
-    print_step "Actualizando lista de paquetes..."
-    sudo apt-get update -qq
+    print_step "Verificando dependencias básicas..."
     
-    print_step "Instalando dependencias básicas..."
-    sudo apt-get install -y \
-        curl \
-        wget \
-        git \
-        build-essential \
-        ca-certificates \
-        gnupg \
-        lsb-release
+    # Lista de paquetes necesarios
+    PACKAGES="curl wget git build-essential ca-certificates gnupg lsb-release unzip"
+    MISSING_PACKAGES=""
     
-    print_success "Dependencias básicas instaladas"
+    # Verificar qué paquetes faltan
+    for pkg in $PACKAGES; do
+        if ! dpkg -l | grep -q "^ii  $pkg "; then
+            MISSING_PACKAGES="$MISSING_PACKAGES $pkg"
+        fi
+    done
+    
+    if [ -n "$MISSING_PACKAGES" ]; then
+        print_step "Actualizando lista de paquetes..."
+        sudo apt-get update -qq
+        
+        print_step "Instalando dependencias faltantes:$MISSING_PACKAGES"
+        sudo apt-get install -y $MISSING_PACKAGES
+        print_success "Dependencias básicas instaladas"
+    else
+        print_success "Todas las dependencias básicas ya están instaladas"
+    fi
 elif [ "$OS" = "fedora" ] || [ "$OS" = "rhel" ]; then
-    print_step "Instalando dependencias básicas..."
-    sudo dnf install -y \
-        curl \
-        wget \
-        git \
-        gcc \
-        gcc-c++ \
-        make \
-        ca-certificates
-    print_success "Dependencias básicas instaladas"
+    print_step "Verificando dependencias básicas..."
+    
+    # Lista de paquetes necesarios
+    PACKAGES="curl wget git gcc gcc-c++ make ca-certificates unzip"
+    MISSING_PACKAGES=""
+    
+    # Verificar qué paquetes faltan
+    for pkg in $PACKAGES; do
+        if ! rpm -q "$pkg" &>/dev/null; then
+            MISSING_PACKAGES="$MISSING_PACKAGES $pkg"
+        fi
+    done
+    
+    if [ -n "$MISSING_PACKAGES" ]; then
+        print_step "Instalando dependencias faltantes:$MISSING_PACKAGES"
+        sudo dnf install -y $MISSING_PACKAGES
+        print_success "Dependencias básicas instaladas"
+    else
+        print_success "Todas las dependencias básicas ya están instaladas"
+    fi
 fi
 
 # Instalar YADM si no está instalado
@@ -98,105 +117,119 @@ else
     print_success "YADM ya está instalado"
 fi
 
-# Instalar NVM y Node.js
-print_step "Instalando NVM y versiones de Node.js..."
-if [ -f "$HOME/install-nvm.sh" ]; then
-    chmod +x "$HOME/install-nvm.sh"
-    bash "$HOME/install-nvm.sh"
-    print_success "NVM y Node.js instalados"
-else
-    print_warning "No se encontró install-nvm.sh. Instalando NVM manualmente..."
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    
-    # Instalar versiones de Node
-    nvm install 14
-    nvm install 16
-    nvm install 18
-    nvm install 20
-    nvm install 22
-    nvm alias default 22
-    print_success "NVM y Node.js instalados"
+# Instalar NVM y Node.js (solo si no están instalados)
+print_step "Verificando NVM y Node.js..."
+
+# Cargar NVM si existe
+export NVM_DIR="$HOME/.nvm"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+    \. "$NVM_DIR/nvm.sh"
 fi
 
-# Instalar Cursor
-print_step "Instalando Cursor..."
-if ! command -v cursor &> /dev/null; then
-    if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
-        CURSOR_DIR="$HOME/.local/bin"
-        mkdir -p "$CURSOR_DIR"
-        
-        # Intentar múltiples métodos de instalación
-        CURSOR_INSTALLED=false
-        
-        # Método 1: Descargar AppImage desde la URL oficial
-        print_step "Intentando descargar Cursor AppImage..."
-        CURSOR_DOWNLOAD_URL="https://downloader.cursor.sh/linux/appImage/x64"
-        
-        if curl -L --connect-timeout 10 --max-time 60 "$CURSOR_DOWNLOAD_URL" -o "$CURSOR_DIR/cursor" 2>/dev/null; then
-            chmod +x "$CURSOR_DIR/cursor"
-            CURSOR_INSTALLED=true
-            print_success "Cursor descargado e instalado desde AppImage"
+# Verificar si NVM está instalado (verificando si el directorio y el script existen)
+if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+    print_step "Instalando NVM..."
+    if [ -f "$HOME/install-nvm.sh" ]; then
+        chmod +x "$HOME/install-nvm.sh"
+        bash "$HOME/install-nvm.sh"
+    else
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    fi
+    print_success "NVM instalado"
+else
+    print_success "NVM ya está instalado"
+    # Asegurar que NVM está cargado
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+fi
+
+# Instalar versiones de Node solo si no están instaladas
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+    \. "$NVM_DIR/nvm.sh"
+    
+    NODE_VERSIONS="14 16 18 20 22"
+    for version in $NODE_VERSIONS; do
+        # Verificar si la versión está instalada usando nvm list
+        if ! nvm list "$version" 2>/dev/null | grep -q "v$version\."; then
+            print_step "Instalando Node.js v$version..."
+            nvm install "$version" >/dev/null 2>&1
         else
-            print_warning "No se pudo descargar Cursor desde la URL oficial"
-            
-            # Método 2: Intentar con wget como alternativa
-            print_step "Intentando con wget como alternativa..."
-            if command -v wget &> /dev/null; then
-                if wget --timeout=10 --tries=3 -O "$CURSOR_DIR/cursor" "$CURSOR_DOWNLOAD_URL" 2>/dev/null; then
-                    chmod +x "$CURSOR_DIR/cursor"
-                    CURSOR_INSTALLED=true
-                    print_success "Cursor descargado e instalado con wget"
-                fi
-            fi
+            print_success "Node.js v$version ya está instalado"
         fi
-        
-        # Método 3: Intentar con el script de instalación oficial (si los métodos anteriores fallaron)
-        if [ "$CURSOR_INSTALLED" = false ]; then
-            print_step "Intentando con el script de instalación oficial de Cursor..."
-            if command -v wget &> /dev/null; then
-                # Script de instalación oficial de Cursor
-                if wget -qO - https://download.todesktop.com/210303leazlircz/linux 2>/dev/null | sh; then
-                    CURSOR_INSTALLED=true
-                    print_success "Cursor instalado con el script oficial"
-                fi
-            fi
-        fi
-        
-        # Si aún no se instaló, ofrecer instrucciones manuales
-        if [ "$CURSOR_INSTALLED" = false ]; then
-            print_warning "No se pudo instalar Cursor automáticamente."
-            print_warning "Por favor instálalo manualmente:"
-            echo ""
-            echo "  Opción 1 - Script oficial:"
-            echo "    wget -qO - https://download.todesktop.com/210303leazlircz/linux | sh"
-            echo ""
-            echo "  Opción 2 - Descargar manualmente:"
-            echo "    1. Visita https://cursor.sh/download"
-            echo "    2. Descarga el .deb o AppImage para Linux"
-            echo "    3. Instala según el formato descargado"
-            echo ""
-            print_warning "Después de instalar Cursor manualmente, puedes continuar con el resto de la configuración."
-        else
-            # Agregar al PATH si no está
-            if [[ ":$PATH:" != *":$CURSOR_DIR:"* ]]; then
-                echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-                export PATH="$HOME/.local/bin:$PATH"
-            fi
-        fi
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        if command -v brew &> /dev/null; then
-            brew install --cask cursor
-        else
-            print_warning "Homebrew no está instalado. Por favor instala Cursor manualmente desde https://cursor.sh"
+    done
+    
+    # Configurar versión por defecto solo si no está configurada
+    CURRENT_DEFAULT=$(nvm alias default 2>/dev/null | grep -oE "v[0-9]+" | head -1 || echo "")
+    if [ -z "$CURRENT_DEFAULT" ] || [ "$CURRENT_DEFAULT" != "v22" ]; then
+        # Verificar que v22 existe antes de configurarlo como default
+        if nvm list 22 2>/dev/null | grep -q "v22\."; then
+            print_step "Configurando Node.js v22 como versión por defecto..."
+            nvm alias default 22 >/dev/null 2>&1 || true
         fi
     else
-        print_warning "Sistema operativo no soportado para instalación automática de Cursor."
-        print_warning "Por favor instala Cursor manualmente desde https://cursor.sh"
+        print_success "Node.js v22 ya está configurado como versión por defecto"
     fi
+    print_success "Verificación de Node.js completada"
+fi
+
+# Nota sobre Cursor - debe instalarse manualmente
+print_step "Verificando Cursor..."
+if ! command -v cursor &> /dev/null; then
+    print_warning "⚠️  Cursor no está instalado."
+    print_warning "   Cursor debe instalarse manualmente desde https://cursor.sh/download"
+    print_warning "   Descarga la última versión disponible e instálala según las instrucciones del sitio."
+    echo ""
 else
     print_success "Cursor ya está instalado"
+fi
+
+# Instalar AWS CLI (solo si no está instalado)
+print_step "Verificando AWS CLI..."
+if ! command -v aws &> /dev/null; then
+    if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ] || [ "$OS" = "fedora" ] || [ "$OS" = "rhel" ]; then
+        print_step "Descargando AWS CLI..."
+        AWS_CLI_DIR="$HOME/.local/aws-cli"
+        mkdir -p "$AWS_CLI_DIR"
+        
+        # Descargar el instalador de AWS CLI v2
+        AWS_CLI_INSTALLER="/tmp/awscli-installer.zip"
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "$AWS_CLI_INSTALLER"
+        
+        # Instalar AWS CLI
+        unzip -q "$AWS_CLI_INSTALLER" -d /tmp
+        /tmp/aws/install -i "$AWS_CLI_DIR" -b "$HOME/.local/bin"
+        
+        # Limpiar archivos temporales
+        rm -rf "$AWS_CLI_INSTALLER" /tmp/aws
+        
+        # Agregar al PATH si no está
+        if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
+        
+        print_success "AWS CLI instalado"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        if command -v brew &> /dev/null; then
+            if ! brew list awscli &>/dev/null; then
+                print_step "Instalando AWS CLI..."
+                brew install awscli
+                print_success "AWS CLI instalado"
+            else
+                print_success "AWS CLI ya está instalado"
+            fi
+        else
+            print_warning "Homebrew no está instalado. Por favor instala AWS CLI manualmente:"
+            echo "  curl 'https://awscli.amazonaws.com/AWSCLIV2.pkg' -o /tmp/AWSCLIV2.pkg"
+            echo "  sudo installer -pkg /tmp/AWSCLIV2.pkg -target /"
+        fi
+    else
+        print_warning "Sistema operativo no soportado para instalación automática de AWS CLI."
+        print_warning "Por favor instala AWS CLI manualmente desde https://aws.amazon.com/cli/"
+    fi
+else
+    print_success "AWS CLI ya está instalado"
 fi
 
 # Instalar i3 Window Manager y dependencias
@@ -303,9 +336,11 @@ if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
 fi
 echo "   1. Cierra y abre una nueva terminal para que los cambios surtan efecto"
 echo "   2. Verifica que todo funciona:"
-echo "      - cursor --version"
+echo "      - aws --version"
 echo "      - nvm --version"
 echo "      - node --version"
+echo "   3. Configura AWS CLI con tus credenciales:"
+echo "      - aws configure"
 if command -v i3 &> /dev/null; then
     echo "      - i3 --version"
 fi
