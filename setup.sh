@@ -173,6 +173,26 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
     print_success "Verificación de Node.js completada"
 fi
 
+# Instalar ntl (solo si no está instalado)
+print_step "Verificando ntl..."
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+    \. "$NVM_DIR/nvm.sh"
+    
+    # Usar Node.js por defecto
+    nvm use default >/dev/null 2>&1 || true
+    
+    # Verificar si ntl está instalado
+    if ! command -v ntl &> /dev/null; then
+        print_step "Instalando ntl..."
+        npm install -g ntl >/dev/null 2>&1
+        print_success "ntl instalado"
+    else
+        print_success "ntl ya está instalado"
+    fi
+else
+    print_warning "NVM no está disponible. ntl requiere Node.js instalado."
+fi
+
 # Nota sobre Cursor - debe instalarse manualmente
 print_step "Verificando Cursor..."
 if ! command -v cursor &> /dev/null; then
@@ -339,6 +359,8 @@ echo "   2. Verifica que todo funciona:"
 echo "      - aws --version"
 echo "      - nvm --version"
 echo "      - node --version"
+echo "      - npm --version"
+echo "      - ntl --version"
 echo "   3. Configura AWS CLI con tus credenciales:"
 echo "      - aws configure"
 if command -v i3 &> /dev/null; then
