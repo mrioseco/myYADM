@@ -24,10 +24,19 @@ print_warning() {
     echo -e "${YELLOW}⚠${NC} $1"
 }
 
-# Verificar que estamos en el directorio home
-if [ ! -f "$HOME/.yadm/repo-config" ]; then
-    print_warning "No se detectó un repositorio YADM. Asegúrate de haber clonado el repo con: yadm clone <URL>"
-    exit 1
+# Verificar que estamos en el directorio home y que los archivos del repo existen
+# Esto es más permisivo - verifica que los archivos están presentes en lugar de
+# la estructura interna de YADM (que puede no estar completamente inicializada)
+if [ -f "$HOME/setup.sh" ] || [ -f "$HOME/README.md" ]; then
+    print_success "Archivos del repositorio detectados en $HOME"
+else
+    print_warning "No se encontraron los archivos del repositorio en $HOME"
+    print_warning "Asegúrate de:"
+    print_warning "  1. Estar en el directorio home: cd \$HOME"
+    print_warning "  2. Haber clonado el repo: yadm clone <URL>"
+    print_warning ""
+    print_warning "Continuando de todas formas (puede ser primera configuración)..."
+    echo ""
 fi
 
 print_step "Verificando dependencias del sistema..."
