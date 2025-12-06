@@ -317,7 +317,8 @@ if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
             xclip \
             pulseaudio \
             pavucontrol \
-            shutter
+            shutter \
+            imagemagick
         
         print_success "i3 y dependencias instaladas"
         
