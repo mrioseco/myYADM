@@ -55,7 +55,7 @@ if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
     print_step "Verificando dependencias básicas..."
     
     # Lista de paquetes necesarios
-    PACKAGES="curl wget git build-essential ca-certificates gnupg lsb-release unzip"
+    PACKAGES="curl wget git build-essential ca-certificates gnupg lsb-release unzip jq"
     MISSING_PACKAGES=""
     
     # Verificar qué paquetes faltan
@@ -79,7 +79,7 @@ elif [ "$OS" = "fedora" ] || [ "$OS" = "rhel" ]; then
     print_step "Verificando dependencias básicas..."
     
     # Lista de paquetes necesarios
-    PACKAGES="curl wget git gcc gcc-c++ make ca-certificates unzip"
+    PACKAGES="curl wget git gcc gcc-c++ make ca-certificates unzip jq"
     MISSING_PACKAGES=""
     
     # Verificar qué paquetes faltan
