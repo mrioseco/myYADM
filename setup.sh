@@ -252,6 +252,46 @@ else
     print_success "AWS CLI ya está instalado"
 fi
 
+# Configurar Git Credential Helper para AWS CodeCommit (solo si AWS CLI está configurado)
+print_step "Verificando configuración de Git Credential Helper para AWS CodeCommit..."
+if command -v aws &> /dev/null; then
+    # Verificar si AWS CLI está configurado (tiene credenciales)
+    AWS_CONFIGURED=false
+    if [ -f "$HOME/.aws/credentials" ] && [ -f "$HOME/.aws/config" ]; then
+        # Verificar que las credenciales no estén vacías
+        if grep -q "\[default\]" "$HOME/.aws/credentials" && \
+           grep -q "aws_access_key_id" "$HOME/.aws/credentials" && \
+           grep -q "aws_secret_access_key" "$HOME/.aws/credentials"; then
+            AWS_CONFIGURED=true
+        fi
+    fi
+    
+    if [ "$AWS_CONFIGURED" = true ]; then
+        # Verificar si el helper ya está configurado
+        CURRENT_HELPER=$(git config --global --get credential.helper 2>/dev/null || echo "")
+        
+        if echo "$CURRENT_HELPER" | grep -q "aws codecommit credential-helper"; then
+            print_success "Git Credential Helper de AWS ya está configurado"
+        else
+            print_step "Configurando Git Credential Helper de AWS..."
+            
+            # Configurar el helper
+            git config --global credential.helper '!aws codecommit credential-helper $@'
+            git config --global credential.UseHttpPath true
+            
+            print_success "Git Credential Helper de AWS configurado correctamente"
+            print_success "Ahora puedes hacer git clone de repositorios de CodeCommit sin ingresar credenciales"
+        fi
+    else
+        print_warning "AWS CLI no está configurado aún (no se encontraron credenciales)"
+        print_warning "Para configurar el Git Credential Helper después, ejecuta:"
+        print_warning "  1. aws configure (para configurar tus credenciales)"
+        print_warning "  2. ~/scripts/setup-aws-git-helper.sh (o ejecuta el setup.sh nuevamente)"
+    fi
+else
+    print_warning "AWS CLI no está instalado. No se puede configurar Git Credential Helper."
+fi
+
 # Instalar Slack (solo si no está instalado)
 print_step "Verificando Slack..."
 if ! command -v slack &> /dev/null; then
@@ -412,11 +452,15 @@ echo "      - ntl --version"
 echo "      - slack --version"
 echo "   3. Configura AWS CLI con tus credenciales:"
 echo "      - aws configure"
+echo "   4. Después de configurar AWS CLI, configura Git para CodeCommit:"
+echo "      - ~/scripts/setup-aws-git-helper.sh"
+echo "      (O ejecuta setup.sh nuevamente y se configurará automáticamente)"
 if command -v i3 &> /dev/null; then
     echo "      - i3 --version"
 fi
 echo ""
 echo "💡 Tip: Usa 'yadm status' para ver el estado de tus configuraciones"
 echo "💡 Tip: En i3, presiona Mod+Shift+c para recargar la configuración"
+echo "💡 Tip: Con Git Credential Helper configurado, puedes clonar repos de CodeCommit sin contraseñas"
 echo ""
 
