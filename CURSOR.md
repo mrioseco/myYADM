@@ -51,11 +51,70 @@ Luego verifica que Cursor funciona:
 cursor --version
 ```
 
-## Notas
+## 🔄 Actualizar Cursor
+
+Si ya tienes Cursor instalado y quieres actualizarlo a una nueva versión:
+
+### Pasos de Actualización
+
+1. **Descargar la nueva versión:**
+   - Visita https://cursor.sh/download
+   - Descarga la última versión del AppImage para Linux (x86_64)
+   - Renombra el archivo descargado a `Cursor.AppImage` (opcional, pero facilita el proceso)
+
+2. **Cerrar Cursor (si está abierto):**
+   ```bash
+   # Asegúrate de cerrar todas las ventanas de Cursor antes de actualizar
+   ```
+
+3. **Extraer el nuevo AppImage:**
+   ```bash
+   # Navega a donde descargaste el AppImage
+   cd ~/Downloads  # o donde lo hayas guardado
+   
+   # Si lo renombraste a Cursor.AppImage:
+   ./Cursor.AppImage --appimage-extract
+   
+   # O si mantuviste el nombre original:
+   # ./Cursor-X.X.X-x86_64.AppImage --appimage-extract
+   ```
+
+4. **Reemplazar la instalación anterior:**
+   ```bash
+   # Eliminar la versión anterior
+   rm -rf ~/.local/share/cursor
+   
+   # Mover la nueva versión
+   mv squashfs-root ~/.local/share/cursor
+   ```
+
+5. **Verificar la actualización:**
+   ```bash
+   cursor --version
+   ```
+
+### Resumen Rápido de Actualización
+
+```bash
+# 1. Descargar y renombrar a Cursor.AppImage (opcional)
+# 2. Extraer
+./Cursor.AppImage --appimage-extract
+
+# 3. Reemplazar
+rm -rf ~/.local/share/cursor
+mv squashfs-root ~/.local/share/cursor
+
+# 4. Verificar
+cursor --version
+```
+
+**Nota:** El script en `~/.local/bin/cursor` no necesita ser recreado, ya apunta a la ubicación correcta.
+
+## 📝 Notas
 
 - El flag `--no-sandbox` es necesario para que Cursor funcione correctamente en algunos sistemas Linux
-- Si actualizas Cursor, repite los pasos 2-4 con la nueva versión del AppImage
-- El script en `~/.local/bin/cursor` puede ser actualizado manualmente si cambias la ubicación de la instalación
+- Si renombras el AppImage a `Cursor.AppImage`, será más fácil recordar el comando de extracción
+- El script en `~/.local/bin/cursor` no necesita cambios al actualizar, ya que apunta a `~/.local/share/cursor/AppRun`
 
 
 
