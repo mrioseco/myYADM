@@ -204,6 +204,233 @@ else
     print_success "Cursor ya está instalado"
 fi
 
+# Instalar Visual Studio Code (solo si no está instalado)
+print_step "Verificando Visual Studio Code..."
+if ! command -v code &> /dev/null; then
+    if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
+        print_step "Instalando Visual Studio Code..."
+        # Agregar clave GPG de Microsoft
+        wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/packages.microsoft.gpg
+        sudo install -D -o root -g root -m 644 /tmp/packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
+        sudo sh -c 'echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list'
+        rm -f /tmp/packages.microsoft.gpg
+        
+        # Actualizar e instalar
+        sudo apt update -qq
+        sudo apt-get install -y code
+        print_success "Visual Studio Code instalado"
+    elif [ "$OS" = "fedora" ] || [ "$OS" = "rhel" ]; then
+        print_step "Instalando Visual Studio Code..."
+        sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+        sudo sh -c 'echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/vscode.repo'
+        sudo dnf install -y code
+        print_success "Visual Studio Code instalado"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        if command -v brew &> /dev/null; then
+            if ! brew list --cask visual-studio-code &>/dev/null; then
+                print_step "Instalando Visual Studio Code..."
+                brew install --cask visual-studio-code
+                print_success "Visual Studio Code instalado"
+            else
+                print_success "Visual Studio Code ya está instalado"
+            fi
+        else
+            print_warning "Homebrew no está instalado. Por favor instala VS Code manualmente desde https://code.visualstudio.com/"
+        fi
+    else
+        print_warning "Sistema operativo no soportado para instalación automática de VS Code."
+        print_warning "Por favor instala VS Code manualmente desde https://code.visualstudio.com/"
+    fi
+else
+    print_success "Visual Studio Code ya está instalado"
+fi
+
+# Instalar extensiones de VS Code (solo si VS Code está instalado)
+if command -v code &> /dev/null; then
+    print_step "Verificando extensiones de VS Code..."
+    
+    # Lista de extensiones a instalar
+    VSCODE_EXTENSIONS=(
+        "andys8.jest-snippets"
+        "eamodio.gitlens"
+        "esbenp.prettier-vscode"
+        "GitHub.copilot"
+        "Gruntfuggly.todo-tree"
+        "ms-dotnettools.csharp"
+        "ms-vsliveshare.vsliveshare"
+        "ritwickdey.LiveServer"
+        "TabNine.tabnine-vscode"
+        "shyykoserhiy.vscode-spotify"
+    )
+    
+    INSTALLED_EXTENSIONS=$(code --list-extensions 2>/dev/null || echo "")
+    INSTALLED_COUNT=0
+    MISSING_COUNT=0
+    
+    for extension in "${VSCODE_EXTENSIONS[@]}"; do
+        if echo "$INSTALLED_EXTENSIONS" | grep -q "^${extension}$"; then
+            INSTALLED_COUNT=$((INSTALLED_COUNT + 1))
+        else
+            print_step "Instalando extensión: $extension..."
+            code --install-extension "$extension" >/dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                print_success "Extensión $extension instalada"
+            else
+                print_warning "No se pudo instalar la extensión $extension"
+            fi
+            MISSING_COUNT=$((MISSING_COUNT + 1))
+        fi
+    done
+    
+    if [ $MISSING_COUNT -eq 0 ]; then
+        print_success "Todas las extensiones de VS Code ya están instaladas"
+    else
+        print_success "Instalación de extensiones completada ($INSTALLED_COUNT ya instaladas, $MISSING_COUNT nuevas)"
+    fi
+    
+    # Configurar archivos de VS Code
+    print_step "Configurando archivos de VS Code..."
+    VSCODE_CONFIG_DIR="$HOME/.config/Code/User"
+    mkdir -p "$VSCODE_CONFIG_DIR"
+    
+    # Verificar si los archivos están en el repositorio YADM
+    REPO_SETTINGS=""
+    REPO_KEYBINDINGS=""
+    
+    # Buscar archivos en el repositorio (pueden estar en diferentes ubicaciones según YADM)
+    if [ -f "$HOME/.config/Code/User/settings.json" ] && yadm ls-files "$HOME/.config/Code/User/settings.json" &>/dev/null; then
+        REPO_SETTINGS="$HOME/.config/Code/User/settings.json"
+    elif [ -f ".config/Code/User/settings.json" ]; then
+        REPO_SETTINGS=".config/Code/User/settings.json"
+    fi
+    
+    if [ -f "$HOME/.config/Code/User/keybindings.json" ] && yadm ls-files "$HOME/.config/Code/User/keybindings.json" &>/dev/null; then
+        REPO_KEYBINDINGS="$HOME/.config/Code/User/keybindings.json"
+    elif [ -f ".config/Code/User/keybindings.json" ]; then
+        REPO_KEYBINDINGS=".config/Code/User/keybindings.json"
+    fi
+    
+    # Copiar settings.json desde el repo si existe, o crear uno por defecto
+    if [ -n "$REPO_SETTINGS" ] && [ -f "$REPO_SETTINGS" ]; then
+        if [ "$REPO_SETTINGS" != "$VSCODE_CONFIG_DIR/settings.json" ]; then
+            cp "$REPO_SETTINGS" "$VSCODE_CONFIG_DIR/settings.json"
+            print_success "settings.json copiado desde el repositorio"
+        else
+            print_success "settings.json ya está en su ubicación correcta"
+        fi
+    elif [ -f "$VSCODE_CONFIG_DIR/settings.json" ]; then
+        print_success "settings.json ya existe"
+    else
+        # Crear settings.json con configuración por defecto
+        cat > "$VSCODE_CONFIG_DIR/settings.json" << 'EOF'
+{
+  "explorer.confirmDelete": false,
+  "files.autoSave": "afterDelay",
+  "[typescript]": {},
+  "diffEditor.ignoreTrimWhitespace": false,
+  "gitlens.views.repositories.location": "scm",
+  "gitlens.views.fileHistory.location": "explorer",
+  "gitlens.views.lineHistory.location": "explorer",
+  "gitlens.views.compare.location": "gitlens",
+  "gitlens.views.search.location": "gitlens",
+  "editor.minimap.enabled": false,
+  "breadcrumbs.enabled": true,
+  "editor.renderWhitespace": "all",
+  "liveServer.settings.AdvanceCustomBrowserCmdLine": "",
+  "liveServer.settings.port": 4200,
+  "liveServer.settings.donotVerifyTags": true,
+  "liveServer.settings.donotShowInfoMsg": true,
+  "gitlens.advanced.messages": {
+    "suppressCommitHasNoPreviousCommitWarning": false,
+    "suppressCommitNotFoundWarning": false,
+    "suppressFileNotUnderSourceControlWarning": false,
+    "suppressGitDisabledWarning": false,
+    "suppressGitVersionWarning": false,
+    "suppressLineUncommittedWarning": false,
+    "suppressNoRepositoryWarning": false
+  },
+  "workbench.colorTheme": "Monokai",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "editor.formatOnSave": true,
+  "http.proxyAuthorization": null,
+  "files.exclude": {
+    "**/*.js.map": true,
+    "**/*.js": { "when": "$(basename).ts" }
+  },
+  "tabnine.experimentalAutoImports": true,
+  "[javascript]": {
+    "editor.formatOnSave": true
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "todo-tree.tree.showScanModeButton": false,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "editor.inlineSuggest.enabled": true,
+  "window.zoomLevel": 1
+}
+EOF
+        print_success "settings.json creado con configuración por defecto"
+    fi
+    
+    # Copiar keybindings.json desde el repo si existe, o crear uno por defecto
+    if [ -n "$REPO_KEYBINDINGS" ] && [ -f "$REPO_KEYBINDINGS" ]; then
+        if [ "$REPO_KEYBINDINGS" != "$VSCODE_CONFIG_DIR/keybindings.json" ]; then
+            cp "$REPO_KEYBINDINGS" "$VSCODE_CONFIG_DIR/keybindings.json"
+            print_success "keybindings.json copiado desde el repositorio"
+        else
+            print_success "keybindings.json ya está en su ubicación correcta"
+        fi
+    elif [ -f "$VSCODE_CONFIG_DIR/keybindings.json" ]; then
+        print_success "keybindings.json ya existe"
+    else
+        # Crear keybindings.json con configuración por defecto
+        cat > "$VSCODE_CONFIG_DIR/keybindings.json" << 'EOF'
+// Place your key bindings in this file to override the defaults
+[
+  {
+    "key": "ctrl+[Minus]",
+    "command": "workbench.action.terminal.toggleTerminal"
+  },
+  {
+    "key": "alt+down",
+    "command": "workbench.action.terminal.focusNextPane",
+    "when": "terminalFocus && terminalProcessSupported"
+  },
+  {
+    "key": "alt+down",
+    "command": "-workbench.action.terminal.focusNextPane",
+    "when": "terminalFocus && terminalProcessSupported"
+  },
+  {
+    "key": "ctrl+alt+down",
+    "command": "workbench.action.terminal.focusNext"
+  },
+  {
+    "key": "ctrl+alt+n",
+    "command": "workbench.action.terminal.new"
+  },
+  {
+    "key": "ctrl+alt+r",
+    "command": "workbench.action.terminal.rename"
+  },
+  {
+    "key": "ctrl+alt+r",
+    "command": "-revealFileInOS",
+    "when": "!editorFocus"
+  },
+  {
+    "key": "ctrl+alt+up",
+    "command": "workbench.action.terminal.focusPrevious"
+  }
+]
+EOF
+        print_success "keybindings.json creado con configuración por defecto"
+    fi
+    
+    print_success "Configuración de VS Code completada"
+else
+    print_warning "VS Code no está instalado. Se omiten las extensiones y configuraciones."
+fi
+
 # Instalar AWS CLI (solo si no está instalado)
 print_step "Verificando AWS CLI..."
 if ! command -v aws &> /dev/null; then
@@ -450,6 +677,10 @@ echo "      - node --version"
 echo "      - npm --version"
 echo "      - ntl --version"
 echo "      - slack --version"
+if command -v code &> /dev/null; then
+    echo "      - code --version"
+    echo "      - code --list-extensions (para ver extensiones instaladas)"
+fi
 echo "   3. Configura AWS CLI con tus credenciales:"
 echo "      - aws configure"
 echo "   4. Después de configurar AWS CLI, configura Git para CodeCommit:"
@@ -457,6 +688,14 @@ echo "      - ~/scripts/setup-aws-git-helper.sh"
 echo "      (O ejecuta setup.sh nuevamente y se configurará automáticamente)"
 if command -v i3 &> /dev/null; then
     echo "      - i3 --version"
+fi
+if command -v code &> /dev/null; then
+    echo ""
+    echo "💡 VS Code:"
+    echo "   - Las extensiones y configuraciones han sido instaladas"
+    echo "   - Configuración en: ~/.config/Code/User/"
+    echo "   - Para ver extensiones: code --list-extensions"
+    echo "   - Para instalar más extensiones: code --install-extension <extension-id>"
 fi
 echo ""
 echo "💡 Tip: Usa 'yadm status' para ver el estado de tus configuraciones"

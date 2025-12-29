@@ -1,0 +1,39 @@
+// Place your key bindings in this file to override the defaults
+[
+  {
+    "key": "ctrl+[Minus]",
+    "command": "workbench.action.terminal.toggleTerminal"
+  },
+  {
+    "key": "alt+down",
+    "command": "workbench.action.terminal.focusNextPane",
+    "when": "terminalFocus && terminalProcessSupported"
+  },
+  {
+    "key": "alt+down",
+    "command": "-workbench.action.terminal.focusNextPane",
+    "when": "terminalFocus && terminalProcessSupported"
+  },
+  {
+    "key": "ctrl+alt+down",
+    "command": "workbench.action.terminal.focusNext"
+  },
+  {
+    "key": "ctrl+alt+n",
+    "command": "workbench.action.terminal.new"
+  },
+  {
+    "key": "ctrl+alt+r",
+    "command": "workbench.action.terminal.rename"
+  },
+  {
+    "key": "ctrl+alt+r",
+    "command": "-revealFileInOS",
+    "when": "!editorFocus"
+  },
+  {
+    "key": "ctrl+alt+up",
+    "command": "workbench.action.terminal.focusPrevious"
+  }
+]
+
