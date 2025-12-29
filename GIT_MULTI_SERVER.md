@@ -83,7 +83,21 @@ Este script configura el helper de AWS CodeCommit (requiere AWS CLI configurado)
 
 ### GitHub
 
-**Opción 1: Token Personal (Recomendado para HTTPS)**
+**Opción 1: SSH (Recomendado - Más Seguro)**
+
+1. Ejecuta el script:
+   ```bash
+   ~/scripts/setup-github-ssh.sh
+   ```
+
+2. Sigue las instrucciones para agregar tu clave SSH a GitHub.
+
+3. Cambia la URL del remote a SSH:
+   ```bash
+   git remote set-url origin git@github.com:usuario/repo.git
+   ```
+
+**Opción 2: Token Personal (HTTPS - Si SSH no funciona)**
 
 1. Crea un token en: https://github.com/settings/tokens
    - Haz clic en "Generate new token" -> "Generate new token (classic)"
@@ -96,25 +110,11 @@ Este script configura el helper de AWS CodeCommit (requiere AWS CLI configurado)
    ~/scripts/setup-github-token.sh
    ```
 
-3. Pega el token cuando se solicite.
-
-**Opción 2: SSH (Más Seguro)**
-
-1. Genera una clave SSH:
+3. **Nota**: Si el helper `store` no funciona en tu sistema, puedes usar temporalmente:
    ```bash
-   ssh-keygen -t ed25519 -C "tu-email@example.com"
+   git remote set-url origin https://usuario:TOKEN@github.com/usuario/repo.git
    ```
-
-2. Agrega la clave pública a GitHub:
-   ```bash
-   cat ~/.ssh/id_ed25519.pub
-   # Copia el contenido y agrégalo en: https://github.com/settings/keys
-   ```
-
-3. Cambia la URL del remote a SSH:
-   ```bash
-   git remote set-url origin git@github.com:usuario/repo.git
-   ```
+   ⚠️ **Advertencia**: Esto expone el token en la configuración del repositorio. No es recomendado para repositorios públicos.
 
 ### GitLab
 
@@ -154,24 +154,41 @@ Si ves este error:
 Error: connect ECONNREFUSED /run/user/1000/vscode-git-8507c1a21a.sock
 ```
 
-**Causa**: VS Code está intentando usar su propio helper de credenciales pero falla.
+**Causa**: VS Code/Cursor está intentando usar su propio helper de credenciales pero falla.
 
 **Solución**:
 
-1. Asegúrate de que los helpers específicos por URL estén configurados (ejecuta `setup-git-credentials.sh`)
-
-2. Deshabilita el helper de VS Code en la configuración de Git:
+1. Ejecuta el script de corrección:
    ```bash
-   git config --global --unset credential.helper
+   ~/scripts/fix-git-credentials.sh
    ```
-   (Solo si estaba configurado globalmente sin especificar URL)
 
-3. Verifica la configuración:
+2. Deshabilita el helper integrado de VS Code/Cursor en sus configuraciones:
+   
+   **Para VS Code**: Edita `~/.config/Code/User/settings.json` y agrega:
+   ```json
+   {
+     "git.useIntegratedAskPass": false,
+     "git.terminalAuthentication": false
+   }
+   ```
+   
+   **Para Cursor**: Edita `~/.config/Cursor/User/settings.json` y agrega:
+   ```json
+   {
+     "git.useIntegratedAskPass": false,
+     "git.terminalAuthentication": false
+   }
+   ```
+
+3. Reinicia VS Code/Cursor completamente.
+
+4. Verifica la configuración:
    ```bash
    git config --global --get-regexp credential
    ```
 
-4. Si el problema persiste, reinicia VS Code/Cursor.
+5. Si el problema persiste, prueba hacer `git push` desde la terminal (fuera del editor).
 
 ## Verificar Configuración
 

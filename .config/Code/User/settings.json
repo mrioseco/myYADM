@@ -40,6 +40,8 @@
   "todo-tree.tree.showScanModeButton": false,
   "typescript.updateImportsOnFileMove.enabled": "always",
   "editor.inlineSuggest.enabled": true,
-  "window.zoomLevel": 1
+  "window.zoomLevel": 1,
+  "git.useIntegratedAskPass": false,
+  "git.terminalAuthentication": false
 }
 
