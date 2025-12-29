@@ -83,22 +83,25 @@ print_success "Git está instalado"
 
 # Verificar si el helper ya está configurado
 print_step "Verificando configuración actual de Git..."
-CURRENT_HELPER=$(git config --global --get credential.helper 2>/dev/null || echo "")
+CURRENT_HELPER=$(git config --global --get credential.https://git-codecommit.*.amazonaws.com.helper 2>/dev/null || echo "")
 
 if echo "$CURRENT_HELPER" | grep -q "aws codecommit credential-helper"; then
     print_success "Git Credential Helper de AWS ya está configurado"
     echo ""
     echo "Configuración actual:"
-    git config --global --get credential.helper
-    git config --global --get credential.UseHttpPath
+    git config --global --get credential.https://git-codecommit.*.amazonaws.com.helper
+    git config --global --get credential.https://git-codecommit.*.amazonaws.com.UseHttpPath
     echo ""
     echo "✅ No se requieren cambios."
     exit 0
 fi
 
-# Configurar el helper
+# Configurar el helper específico para CodeCommit (no sobrescribe otros helpers)
 print_step "Configurando Git Credential Helper de AWS..."
-git config --global credential.helper '!aws codecommit credential-helper $@'
+# Configurar helper específico para CodeCommit
+git config --global credential.https://git-codecommit.*.amazonaws.com.helper '!aws codecommit credential-helper $@'
+git config --global credential.https://git-codecommit.*.amazonaws.com.UseHttpPath true
+# Mantener UseHttpPath global para CodeCommit
 git config --global credential.UseHttpPath true
 
 print_success "Git Credential Helper de AWS configurado correctamente"
